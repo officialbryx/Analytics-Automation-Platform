@@ -1,0 +1,11 @@
+.git
+*.git
+*sa*.json
+*.back
+.back
+*.env*
+*do*.json
+volumes/
+*.json
+*credentials*.json
+app/*credentials*.json
