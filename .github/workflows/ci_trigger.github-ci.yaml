@@ -1,0 +1,96 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # -------------------------------------------------------------
+  # 1. Lint Job (Code Style & Quality Check)
+  # -------------------------------------------------------------
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Linting Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black # or whichever linter you use
+
+      - name: Run Linter
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  # -------------------------------------------------------------
+  # 2. Unit Testing Job (Pytest + PostgreSQL + Coverage)
+  # -------------------------------------------------------------
+  unit_test:
+    name: Pytest & Coverage
+    runs-on: ubuntu-latest
+
+    # Service container for PostgreSQL (equivalent to GitLab's services)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: aap
+          POSTGRES_USER: aap
+          POSTGRES_PASSWORD: aap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Pytest with Coverage
+        env:
+          POSTGRES_DB: aap
+          POSTGRES_USER: aap
+          POSTGRES_PASSWORD: aap
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          MINIMUM_COVERAGE: 90
+        run: |
+          pytest --capture=tee-sys \
+            -sv \
+            --junitxml=develop.xml \
+            --cov \
+            --cov-report term \
+            --cov-report xml:develop.xml \
+            --cov-fail-under=${MINIMUM_COVERAGE}
+
+      - name: Upload Test Coverage Artifacts (Optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-coverage-report
+          path: develop.xml

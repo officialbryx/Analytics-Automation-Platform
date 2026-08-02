@@ -1,0 +1,20 @@
+name: Merge Request Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  merge_request_review:
+    name: Review
+    runs-on: ubuntu-latest
+    
+    # Leverages GitHub Environment protection for manual approval
+    environment: review-gate
+
+    steps:
+      - name: Print Review Approval
+        run: |
+          echo "Merge Request Approved by '${{ github.actor }}'"
