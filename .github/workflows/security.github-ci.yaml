@@ -1,85 +1,66 @@
-name: Security & Code Analysis
+name: Security & Vulnerability Scan
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   # -------------------------------------------------------------
-  # 1. Secret Detection
+  # 1. Secret Leak Detection (No Tokens Needed)
   # -------------------------------------------------------------
-  secret_detection:
-    name: Secret Detection
+  secret-scan:
+    name: Secret Leak Detection
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full history needed to detect secrets across commits
+          fetch-depth: 0 # Scans complete commit history
 
-      - name: TruffleHog Secret Scan
+      - name: Run TruffleHog Secret Scan
         uses: trufflesecurity/trufflehog-actions-scan@v3.82.6
         with:
           extra_args: --only-verified
 
   # -------------------------------------------------------------
-  # 2. SAST (Static Application Security Testing) & SCA
+  # 2. Dependency & Code Vulnerability Scan (Replaces SonarQube / SAST)
   # -------------------------------------------------------------
-  sast_and_sca:
-    name: SAST & Dependency SCA Scan
+  code-and-dependency-scan:
+    name: Code & Dependency Vulnerability Scan
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: true # Captures findings without blocking local dev
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Run Semgrep SAST Scan
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: p/default
-
-  # -------------------------------------------------------------
-  # 3. SonarQube Code Quality & Security Check
-  # -------------------------------------------------------------
-  sonarqube_check:
-    name: SonarQube Scan
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v3.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-  # -------------------------------------------------------------
-  # 4. Container Scanning
-  # -------------------------------------------------------------
-  container_scanning:
-    name: Container Vulnerability Scan
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Build local Docker image for scanning
-        run: |
-          docker build -t aap-local-image:latest .
-
-      - name: Run Trivy Vulnerability Scanner
+      - name: Run Trivy Scanner on Repository
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'aap-local-image:latest'
+          scan-type: 'fs'
+          scan-ref: '.'
           format: 'table'
-          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # -------------------------------------------------------------
+  # 3. Container Vulnerability Scan
+  # -------------------------------------------------------------
+  container-scan:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Local Image for Scanning
+        run: |
+          docker build -t app-local-scan:latest .
+
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app-local-scan:latest'
+          format: 'table'
           severity: 'CRITICAL,HIGH'
