@@ -1,0 +1,32 @@
+version: '3.8'
+name: aap
+
+services:
+  postgres:
+    container_name: postgres-aap
+    image: postgres:latest
+    restart: always
+    hostname: postgres
+    env_file:
+      - .env.docker
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/
+    mem_limit: 512m
+    mem_reservation: 128M
+    cpus: 0.5
+  redis:
+    container_name: redis-aap
+    image: redis:7.2.4-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    env_file:
+      - .env.docker
+    mem_limit: 512m
+    mem_reservation: 128M
+    cpus: 0.5
+
+volumes:
+  db:
