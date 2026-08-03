@@ -1,18 +1,24 @@
 from traceback import format_exc
+from django.urls import reverse
 from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import render, redirect
+from django.http import HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 import logging
-from .forms import RequestForm
-from .tasks import process_form_data
+from main.forms import RequestForm
+from main.tasks import process_form_data
+from aap.celery import app
+from celery.result import AsyncResult
+from main.models import Requests
 
 logger = logging.getLogger(__name__)
 
 # Create your views here.
-# @login_required(login_url="/users/login/")
-def main_page(request):
-    """View function for the main page."""
+# @login_required(login_url="/")
+def form_page(request):
+    """View function for the form page."""
     # Check if form is submitted
     if request.method == "POST":
         form = RequestForm(request.POST)
@@ -22,15 +28,15 @@ def main_page(request):
             try:
                 # Create a new Request object
                 with transaction.atomic():
-                    ticket = form.save(commit=False)
+                    request_obj = form.save(commit=False)
 
                     # Calls the function to process the form data
                     # and sends all form data
                     task = process_form_data.delay(**form.cleaned_data)
 
-                    ticket.task_id = task.id
-                    ticket.requester_email = request.user.email
-                    ticket.save()
+                    request_obj.task_id = task.id
+                    request_obj.requester_email = request.user.email
+                    request_obj.save()
 
                 # Send success message
                 messages.success(
@@ -40,11 +46,10 @@ def main_page(request):
                 logger.info(f"Form submitted successfully by {request.user.email}")
 
                 # Redirect to main page
-                return redirect("main_page")
+                return redirect("form_page")
             except Exception as error:
                 messages.error(request, error)
                 logger.error(format_exc())
-        # For invalid forms, display error message
         else:
             messages.error(
                 request,
@@ -53,8 +58,134 @@ def main_page(request):
             logger.error(
                 'Error: Form did not submit',
             )
-    # If form is not submitted, render the main page instead
     else:
         form = RequestForm()
 
-    return render(request, "main.html", {"form": form})
+    return render(request, "form.html", {"form": form})
+
+# @login_required(login_url="/users/login/")
+def requests_page(request):
+    """View function for the requests page. It renders
+    the requests page with the list of requests as a table
+    """
+    try:
+        # [EDIT HERE]
+        # Names of the fields of the model to render to the table
+        fields_to_render = [
+            "name",
+            "description",
+            "table_name",
+            "date",
+            "status",
+            "requested_by",
+            "requester_email",
+            "requester_is",
+            "requester_is_email",
+        ]
+
+        # [EDIT HERE]
+        # Custom name of the columns to render to the table.
+        column_names = {
+            "name": "Request Name",
+            "requester_email": "Requester Email",
+        }
+
+        # Check if user is a superuser
+        # If so, all Requests are returned
+        # Else, only the Requests created by the user are returned
+        if request.user.is_superuser:
+            requests = Requests.objects.all().order_by("-date")
+        else:
+            requests = Requests.objects.filter(
+                requested_by=request.user.username
+            ).order_by("-date")
+
+        # Create context dict for rendering
+        context = {
+            "requests": requests,
+            "fields_to_render": fields_to_render,
+            "column_names": {
+                field: column_names.get(field, _format_string(field))
+                for field in fields_to_render
+            },
+        }
+
+        return render(request, "requests.html", context)
+    except Exception as error:
+        messages.error(request, str(error))
+        logger.error(format_exc())
+        return HttpResponseRedirect(
+            request.META.get("HTTP_REFERER", reverse("requests_page"))
+        )
+
+
+def _format_string(value: str) -> str:
+    return " ".join(word.capitalize() for word in value.split("_"))
+
+
+#@login_required(login_url="/")
+def cancel_celery_task(request, task_id):
+    try:
+        task = Requests.objects.get(task_id=task_id)
+
+        # Check if task is not running or retrying. If so, return an error message
+        if task.status not in ["running", "retrying"]:
+            messages.error(request, "Task has already finished or failed")
+            logger.info("Task has already finished or failed")
+            return HttpResponseRedirect(
+                request.META.get("HTTP_REFERER", reverse("requests_page"))
+            )
+
+        # Cancel celery task
+        AsyncResult(id=task_id, app=app).revoke(terminate=True)
+
+        # Update request status and logs
+        with transaction.atomic():
+            task.status = "cancelled"
+            task.logs = (
+                f"Task Cancelled [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}]"
+            )
+            task.save()
+
+        messages.success(request, "Task cancelled successfully")
+        logger.info("Task cancelled successfully")
+    except Requests.DoesNotExist:
+        messages.error(request, "Request not found")
+        logger.error(format_exc())
+    except Exception as error:
+        messages.error(request, str(error))
+        logger.error(format_exc())
+
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("requests_page")))
+
+
+#@login_required(login_url="/")
+def delete_request(request, pk):
+    try:
+        request_obj = Requests.objects.get(pk=pk)
+        if (
+            request_obj.requested_by != request.user.username
+            and not request.user.is_superuser
+        ):
+            messages.error(request, "You do not have permission to delete this")
+            logger.error("User does not have permission to delete this")
+            return HttpResponseRedirect(
+                request.META.get("HTTP_REFERER", reverse("requests_page"))
+            )
+
+        if request_obj.status in ["retrying", "running"]:
+            AsyncResult(id=request_obj.task_id, app=app).revoke(terminate=True)
+
+        with transaction.atomic():
+            request_obj.delete()
+            messages.success(request, "Deleted successfully!")
+            logger.info(f"Deleted '{request_obj.pk}|{request_obj.task_id}' successfully!")
+
+    except Requests.DoesNotExist:
+        messages.error(request, "Request not found!")
+        logger.error(format_exc())
+    except Exception as error:
+        messages.error(request, str(error))
+        logger.error(format_exc())
+
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("requests_page")))
