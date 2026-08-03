@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+* {
+    font-family: 'Inter', sans-serif;
+    font-size: 14;
+}
+
+.custom-card-header {
+    background-color: #0c53a5;
+    color: white;
+    border-top-left-radius: 0.95rem !important; 
+    border-top-right-radius: 0.95rem !important;
+}
+
+.custom-card-body {
+    background-color: #061a3f;
+    border-bottom-left-radius: 0.95rem !important; 
+    border-bottom-right-radius: 0.95rem !important;
+}
+
+.custom-card-body {
+    background-color: #061a3f;
+    border-bottom-left-radius: 0.95rem; 
+    border-bottom-right-radius: 0.95rem;
+}
+
+.custom-alert {
+    position: fixed;
+    width: 500px;
+    z-index: 1050;
+    margin-top: 5px;
+    margin-left: auto;
+    margin-right: 20px;
+    right: 0;
+}
+
+.custom-card-body {
+    background-color: #061a3f;
+    border-bottom-left-radius: 0.95rem; 
+    border-bottom-right-radius: 0.95rem;
+}
+
+.custom-blue-bg {
+    background-color: #061a3f;
+}
+
+.custom-navbar {
+    background-color: #061a3f;
+    color: white;
+    z-index: 1100;
+}
+
+.nav-link {
+    color: white;
+}
+
+.btn-custom {
+    width: 60%;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+.submit-btn {
+    width: 70%;
+}
+
+.table-custom {
+    --bs-table-bg: #C9DAF8;
+}
+
+p.help-text {
+    font-size: 13px !important;
+    color: #6C757D !important;
+    margin-top: 9px;
+    margin-bottom: 0;
+}
+
+p.help-text.error {
+    color: #DC3545 !important;
+}
+
+p.help-text.success {
+    color: #28A745 !important;
+}
+
+input.error {
+    border-color: #DC3545 !important;
+    color: #DC3545 !important;
+    border-width: 2px;
+}
+
+.nowrap td {
+    white-space: nowrap;
+}
+
+.nowrap td.wrap-text {
+    white-space: normal !important;
+    word-wrap: break-word;
+}
+
+.form-label {
+    color: #fff !important; 
+}
+
+.form-check-label {
+    color: #fff !important;
+}
+
+select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3e%3cpolyline points="6 9 12 15 18 9"%3e%3c/polyline%3e%3c/svg%3e');
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+}
