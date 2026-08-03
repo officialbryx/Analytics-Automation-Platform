@@ -1,28 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
 * {
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 14;
 }
 
 .custom-card-header {
-    background-color: #0c53a5;
+    background-color: #ffc82a;
     color: white;
     border-top-left-radius: 0.95rem !important; 
     border-top-right-radius: 0.95rem !important;
 }
 
 .custom-card-body {
-    background-color: #061a3f;
+    background-color: #727272;
     border-bottom-left-radius: 0.95rem !important; 
     border-bottom-right-radius: 0.95rem !important;
-}
-
-.custom-card-body {
-    background-color: #061a3f;
-    border-bottom-left-radius: 0.95rem; 
-    border-bottom-right-radius: 0.95rem;
 }
 
 .custom-alert {
@@ -35,18 +29,12 @@
     right: 0;
 }
 
-.custom-card-body {
-    background-color: #061a3f;
-    border-bottom-left-radius: 0.95rem; 
-    border-bottom-right-radius: 0.95rem;
-}
-
-.custom-blue-bg {
-    background-color: #061a3f;
+.custom-bg {
+    background-color: #ffc82a;
 }
 
 .custom-navbar {
-    background-color: #061a3f;
+    background-color: #ffc82a;
     color: white;
     z-index: 1100;
 }
@@ -100,11 +88,11 @@ input.error {
 }
 
 .form-label {
-    color: #fff !important; 
+    color: #ffffff !important; 
 }
 
 .form-check-label {
-    color: #fff !important;
+    color: #ffffff !important;
 }
 
 select.form-control {
