@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAP | Login</title>
+    <link rel="shortcut icon" href="{% static 'media/aap_logo.ico' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+</head>
+
+<body>
+    <div class="container-fluid custom-blue-bg">
+        <main class="vh-100">
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="card shadow rounded-4">
+                    <div class="card-body text-center">
+                        <img src="{% static 'media/aap_logo.png' %}" alt="AAP Logo" class="my-3" height="100"
+                            width="100">
+                        <h1><strong>AAP</strong></h1>
+                        <div class="mb-3 mt-5">
+                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-secondary">
+                                <span><img heigh="35" src="{% static 'media/google.svg' %}"></span>
+                                Sign in with Google Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="{%static 'js/popper.js' %}"></script>
+    <script src="{% static 'js/bootstrap.js' %}"></script>
+</body>
+</html>
