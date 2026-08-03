@@ -74,7 +74,9 @@ python app/manage.py runserver
 ```
 
 **Run the celery worker**
+```
 python -m celery -a aap worker -l info
+```
 
 ## Documentation
 
