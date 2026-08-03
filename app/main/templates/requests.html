@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tickets_templatetags %}
+
+{% block title %}AAP | Requests{% endblock title %}
+
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/dataTables.bootstrap5.css' %}">
+<script defer src="{% static 'js/main.js' %}"></script>
+{% endblock head %}
+
+{%block content %}
+<!-- Model for Task Cancellation -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="confirmModalLabel"><strong>Confirm Task Cancellation</strong></h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this task? This action cannot be undone and the task cannot be
+                    re-run. You will need to submit it again if required.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" class="btn btn-danger">Cancel Task</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model for Deleting Request/Ticket -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="deleteModalLabel"><strong>Confirm Ticket Deletion</strong></h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to permanently delete this ticket? This action cannot be undone and will cancel
+                    the running request</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-xl">
+    <div class="row my-4">
+        <div class="col">
+            <h4><strong>Requests</strong></h4>
+        </div>
+    </div>
+    <div class="row my-4">
+        <div class="col">
+            <table id="ticketsTable" class="table table-hover table-bordered display nowrap">
+                <thead>
+                    <tr>
+                        <th scope="col">No</th>
+                        <th scope="col">Action</th>
+                        {% for field in fields_to_render %}
+                        <th scope="col">{{ column_names|get_value:field }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider">
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <span data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-delete-url="{% url 'delete_ticket' ticket.pk %}">
+                                <a class="btn" data-bs-toggle="tooltip" data-bs-title="Delete"
+                                    style="cursor: pointer; padding: 2px 2px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red"
+                                        class="bi bi-trash-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0" />
+                                    </svg>
+                                </a>
+                            </span>
+                            {% if ticket.status == 'running' or ticket.status == 'retrying' %}
+                            <span data-bs-toggle="modal" data-bs-target="#confirmModal"
+                                data-cancel-url="{% url 'cancel_celery_task' ticket.task_id %}"
+                                style="margin-right: 5px;">
+                                <a class="btn" data-bs-toggle="tooltip" data-bs-title="Cancel Task"
+                                    style="cursor: pointer; padding: 2px 2px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red"
+                                        class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                                    </svg>
+                                </a>
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% for field in fields_to_render %}
+                        {% if field == 'status' %}
+                        <td>
+                            <div class="{{ ticket|getattr:field | map_class }} rounded badge">
+                                <strong>{{ ticket|getattr:field|upper }}</strong>
+                            </div>
+                        </td>
+                        {% else %}
+                        <td>{{ ticket|getattr:field }}</td>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/jquery-3.7.1.js' %}"></script>
+<script src="{% static 'js/bootstrap.bundle.js' %}"></script>
+<script src="{% static 'js/dataTables.js' %}"></script>
+<script src="{% static 'js/dataTables.bootstrap5.js' %}"></script>
+
+<script>
+    $('#confirmModal').on('show.bs.modal', function (event) {
+        const cancelURL = $(event.relatedTarget).data('cancel-url');
+        const modal = $(this);
+        const cancelLink = modal.find('.modal-footer a.btn-danger');
+
+
+        cancelLink.attr('href', cancelURL);
+    });
+
+    $('#deleteModal').on('show.bs.modal', function (event) {
+        const deleteURL = $(event.relatedTarget).data('delete-url');
+        const modal = $(this);
+        const deleteLink = modal.find('.modal-footer a.btn-danger');
+
+        deleteLink.attr('href', deleteURL);
+    });
+</script>
+{%endblock scripts %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title%}AAP | Home{% endblock title%}
+
+{% block content%}
+<div class="container-xl">
+    <div class="row justify-content-center my-1">
+        <div class="col-6">
+            <div class="card shadow mt-4 rounded-4">
+                <div class="card-header custom-card-header">
+                    <h5 style="margin: 0"><strong>Request Form</strong></h5>
+                </div>
+                <div class="card-body custom-card-body">
+                    <div class="row">
+                        <form method="POST" enctype="multipart/form-data">
+                            <div>
+                                {% csrf_token%}
+                                {% for field in form%}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label"><strong>{{ field.label }}</strong></label>
+                                    {{ field }}
+                                    {{ field.errors }}
+                                </div>
+                                {% endfor%}
+                                <div class="mb-3">
+                                    <label for="id_requester_email" class="form-label"><strong>Requester Email</strong></label>
+                                    <input type="text" name="requester_email" class="form-control"
+                                        value="{{ request.user.email }}" required="" id="id_requester_email" disabled>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-secondary submit-btn" type="submit">Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
