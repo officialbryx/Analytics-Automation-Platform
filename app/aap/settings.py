@@ -167,7 +167,7 @@ STATIC_ROOT = "/data/static"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User Model
-AUTH_USER_MODEL = "portal.User"
+AUTH_USER_MODEL = "portal.UserProfile"
 
 # Login URLs and Redirects
 LOGIN_URL = "/portal/login/"
