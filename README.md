@@ -45,6 +45,9 @@ POSTGRES_DB=aap
 REDIS_URL=redis://localhost:6379
 REDIS_PASSWORD=redis123
 REDIS_PORT=6379
+
+GOOGLE_OAUTH2_KEY=your_client_id_here
+GOOGLE_OAUTH2_SECRET=your_client_key_here
 ```
 
 3. Spin up services PostgreSQL & Redis services using Docker Compose:
