@@ -29,6 +29,7 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+2. Put these in .env file
 ```
 DJANGO_SECRET_KEY=your_secret_key_here
 DJANGO_DEBUG=True
@@ -46,9 +47,7 @@ REDIS_PASSWORD=redis123
 REDIS_PORT=6379
 ```
 
-Put these in .env file
-
-2. Spin up services PostgreSQL & Redis services using Docker Compose:
+3. Spin up services PostgreSQL & Redis services using Docker Compose:
 
 ```
 docker compose up
@@ -56,7 +55,7 @@ docker compose up
 
 This will create a PostgreSQL and Redis databases. These should be run via Docker dashboard so press `Ctrl + C` and run it via the Docker dashboard
 
-3. Apply database migrations and create an intial admin account:
+4. Apply database migrations and create an intial admin account:
 
 ```
 # Run migrations
