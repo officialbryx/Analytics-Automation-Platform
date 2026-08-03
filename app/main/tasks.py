@@ -4,7 +4,7 @@ from django.utils import timezone
 from celery import shared_task
 from celery.contrib.abortable import AbortableTask
 from celery.exceptions import SoftTimeLimitExceeded
-from tickets.models import Tickets
+from main.models import Requests
 from main.process import process
 
 SOFT_TIME_LIMIT = 86400  # 24 hours
@@ -52,7 +52,7 @@ def process_form_data(self, **kwargs):
 
 def _update_ticket_status(task_id: str, status: str, logs: str) -> None:
     with transaction.atomic():
-        current_request = Tickets.objects.get(task_id=task_id)
+        current_request = Requests.objects.get(task_id=task_id)
         current_request.status = status
         current_request.logs = logs
         current_request.save()
