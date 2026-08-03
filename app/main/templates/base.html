@@ -15,18 +15,18 @@
 <body>
     <header class="navbar navbar-expand-lg custom-navbar py-1">
         <nav class="container-fluid">
-            <a href="{% url 'main_page' %}" class="navbar-brand ms-2">
+            <a href="{% url 'main:form_page' %}" class="navbar-brand ms-2">
                 <img src="{% static 'media/aap_logo.ico' %}" width="35" height="35">
             </a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav align-items-center">
                     <li class="nav-item">
-                        <a href="{% url 'main_page' %}" class="nav-link">
-                            <strong>Home</strong>
+                        <a href="{% url 'main:form_page' %}" class="nav-link">
+                            <strong>Extract Data</strong>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'tickets' %}" class="nav-link">
+                        <a href="{% url 'main:requests_page' %}" class="nav-link">
                             <strong>Requests</strong>
                         </a>
                     </li>

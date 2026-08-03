@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load tickets_templatetags %}
+{% load requests_templatetags %}
 
 {% block title %}AAP | Requests{% endblock title %}
 
 {% block head %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/dataTables.bootstrap5.css' %}">
-<script defer src="{% static 'js/main.js' %}"></script>
 {% endblock head %}
 
 {%block content %}
@@ -53,12 +52,12 @@
 <div class="container-xl">
     <div class="row my-4">
         <div class="col">
-            <h4><strong>Requests</strong></h4>
+            <h4><strong>Request</strong></h4>
         </div>
     </div>
     <div class="row my-4">
         <div class="col">
-            <table id="ticketsTable" class="table table-hover table-bordered display nowrap">
+            <table id="requestTable" class="table table-hover table-bordered display nowrap">
                 <thead>
                     <tr>
                         <th scope="col">No</th>
@@ -69,12 +68,12 @@
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
-                    {% for ticket in tickets %}
+                    {% for request in requests %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>
                             <span data-bs-toggle="modal" data-bs-target="#deleteModal"
-                                data-delete-url="{% url 'delete_ticket' ticket.pk %}">
+                                data-delete-url="{% url 'main:delete_request' request.task_id %}">
                                 <a class="btn" data-bs-toggle="tooltip" data-bs-title="Delete"
                                     style="cursor: pointer; padding: 2px 2px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red"
@@ -86,7 +85,7 @@
                             </span>
                             {% if ticket.status == 'running' or ticket.status == 'retrying' %}
                             <span data-bs-toggle="modal" data-bs-target="#confirmModal"
-                                data-cancel-url="{% url 'cancel_celery_task' ticket.task_id %}"
+                                data-cancel-url="{% url 'main:cancel_request' request.task_id %}"
                                 style="margin-right: 5px;">
                                 <a class="btn" data-bs-toggle="tooltip" data-bs-title="Cancel Task"
                                     style="cursor: pointer; padding: 2px 2px;">
@@ -102,12 +101,12 @@
                         {% for field in fields_to_render %}
                         {% if field == 'status' %}
                         <td>
-                            <div class="{{ ticket|getattr:field | map_class }} rounded badge">
-                                <strong>{{ ticket|getattr:field|upper }}</strong>
+                            <div class="{{ request|getattr:field | map_class }} rounded badge">
+                                <strong>{{ request|getattr:field|upper }}</strong>
                             </div>
                         </td>
                         {% else %}
-                        <td>{{ ticket|getattr:field }}</td>
+                        <td>{{ request|getattr:field }}</td>
                         {% endif %}
                         {% endfor %}
                     </tr>
@@ -123,6 +122,7 @@
 <script src="{% static 'js/bootstrap.bundle.js' %}"></script>
 <script src="{% static 'js/dataTables.js' %}"></script>
 <script src="{% static 'js/dataTables.bootstrap5.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 
 <script>
     $('#confirmModal').on('show.bs.modal', function (event) {

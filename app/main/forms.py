@@ -6,8 +6,7 @@ class RequestForm(forms.ModelForm):
     # Custom placeholder text for the form fields. Default value is empty
     placeholders = {
         "request_name": "Request Title",
-        "description": "Brief information of the request",
-        "requester_email": "bryan.tiamzon@gmail.com",
+        "information": "Brief information of the request",
     }
 
     class Meta:
@@ -15,15 +14,13 @@ class RequestForm(forms.ModelForm):
         fields = (
             "request_name",
             "information",
-            "requester_email",
         )
 
         # [EDIT HERE]
         # Custom labels for the form fields. Default value is the field name
         labels = {
-            "request_name": "Ticket Name",
+            "request_name": "Request Name",
             "information": "Information",
-            "requester_email": "Requester Email",
         }
 
     def __init__(self, *args, **kwargs):

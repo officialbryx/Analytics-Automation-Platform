@@ -16,7 +16,7 @@ from main.models import Requests
 logger = logging.getLogger(__name__)
 
 # Create your views here.
-# @login_required(login_url="/")
+@login_required(login_url="/")
 def form_page(request):
     """View function for the form page."""
     # Check if form is submitted
@@ -45,7 +45,7 @@ def form_page(request):
                 )
                 logger.info(f"Form submitted successfully by {request.user.email}")
 
-                # Redirect to main page
+                # Redirect to form page
                 return redirect("form_page")
             except Exception as error:
                 messages.error(request, error)
@@ -63,7 +63,7 @@ def form_page(request):
 
     return render(request, "form.html", {"form": form})
 
-# @login_required(login_url="/users/login/")
+@login_required(login_url="/")
 def requests_page(request):
     """View function for the requests page. It renders
     the requests page with the list of requests as a table
@@ -72,21 +72,18 @@ def requests_page(request):
         # [EDIT HERE]
         # Names of the fields of the model to render to the table
         fields_to_render = [
-            "name",
-            "description",
-            "table_name",
-            "date",
             "status",
-            "requested_by",
+            "request_name",
+            "information",
+            "date",
             "requester_email",
-            "requester_is",
-            "requester_is_email",
         ]
 
         # [EDIT HERE]
         # Custom name of the columns to render to the table.
         column_names = {
-            "name": "Request Name",
+            "request_name": "Request Name",
+            "information": "Information",
             "requester_email": "Requester Email",
         }
 
@@ -97,7 +94,7 @@ def requests_page(request):
             requests = Requests.objects.all().order_by("-date")
         else:
             requests = Requests.objects.filter(
-                requested_by=request.user.username
+                requester_email=request.user.email
             ).order_by("-date")
 
         # Create context dict for rendering
@@ -115,7 +112,7 @@ def requests_page(request):
         messages.error(request, str(error))
         logger.error(format_exc())
         return HttpResponseRedirect(
-            request.META.get("HTTP_REFERER", reverse("requests_page"))
+            request.META.get("HTTP_REFERER", reverse("main:requests_page"))
         )
 
 
@@ -123,7 +120,7 @@ def _format_string(value: str) -> str:
     return " ".join(word.capitalize() for word in value.split("_"))
 
 
-#@login_required(login_url="/")
+@login_required(login_url="/")
 def cancel_celery_task(request, task_id):
     try:
         task = Requests.objects.get(task_id=task_id)
@@ -133,7 +130,7 @@ def cancel_celery_task(request, task_id):
             messages.error(request, "Task has already finished or failed")
             logger.info("Task has already finished or failed")
             return HttpResponseRedirect(
-                request.META.get("HTTP_REFERER", reverse("requests_page"))
+                request.META.get("HTTP_REFERER", reverse("main:requests_page"))
             )
 
         # Cancel celery task
@@ -156,21 +153,21 @@ def cancel_celery_task(request, task_id):
         messages.error(request, str(error))
         logger.error(format_exc())
 
-    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("requests_page")))
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("main:requests_page")))
 
 
-#@login_required(login_url="/")
-def delete_request(request, pk):
+@login_required(login_url="/")
+def delete_request(request, task_id):
     try:
-        request_obj = Requests.objects.get(pk=pk)
+        request_obj = Requests.objects.get(task_id=task_id)
         if (
-            request_obj.requested_by != request.user.username
+            request_obj.requester_email != request.user.email
             and not request.user.is_superuser
         ):
             messages.error(request, "You do not have permission to delete this")
             logger.error("User does not have permission to delete this")
             return HttpResponseRedirect(
-                request.META.get("HTTP_REFERER", reverse("requests_page"))
+                request.META.get("HTTP_REFERER", reverse("main:requests_page"))
             )
 
         if request_obj.status in ["retrying", "running"]:
@@ -188,4 +185,4 @@ def delete_request(request, pk):
         messages.error(request, str(error))
         logger.error(format_exc())
 
-    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("requests_page")))
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("main:requests_page")))

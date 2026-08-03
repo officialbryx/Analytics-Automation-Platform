@@ -16,6 +16,7 @@ class Requests(models.Model):
 
     request_name = models.CharField()
     information = models.TextField()
+    date = models.DateTimeField(auto_now_add=True)
     requester_email = models.EmailField()
 
     class Meta:

@@ -173,7 +173,7 @@ AUTH_USER_MODEL = "portal.UserProfile"
 LOGIN_URL = "/portal/login/"
 LOGOUT_URL = "/portal/logout/"
 
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/form"
 LOGOUT_REDIRECT_URL = "/portal/login/"
 LOGIN_ERROR_URL = "/portal/login/error"
 
