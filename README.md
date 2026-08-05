@@ -48,6 +48,7 @@ REDIS_PORT=6379
 
 GOOGLE_OAUTH2_KEY=your_client_id_here
 GOOGLE_OAUTH2_SECRET=your_client_key_here
+GOOGLE_APPLICATION_CREDENTIALS=your_application_credentials_json_here
 ```
 
 3. Spin up services PostgreSQL & Redis services using Docker Compose:
