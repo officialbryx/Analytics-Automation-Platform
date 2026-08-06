@@ -39,7 +39,7 @@ def form_page(request):
                         requester_email=request.user.email,
                         report_name=form.cleaned_data['report_name'],
                         information=form.cleaned_data['information'],
-                        ticker=form.cleaned_data['ticker'],
+                        tickers=form.cleaned_data['tickers'],
                         statement_type=form.cleaned_data['statement_type'],
                         period_type=form.cleaned_data['period_type'],
                         start_year=form.cleaned_data['start_year'],

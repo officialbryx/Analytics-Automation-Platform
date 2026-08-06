@@ -12,11 +12,13 @@ class RequestForm(forms.Form):
         label="Brief Information / Justification",
         widget=forms.Textarea(attrs={"rows": 3, "cols": 40}),
     )
-    ticker = forms.CharField(
-        label="Company Ticker(s)",
-        help_text="e.g. AAPL, MSFT, GOOGL",
+    tickers = forms.MultipleChoiceField(
+        choices=Requests.TICKER_CHOICES,
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-control select2',
+        }),
+        help_text="Hold Ctrl (Cmd on Mac) to select multiple tickers."
     )
-    
     statement_type = forms.ChoiceField(
         label="Financial Statement Type",
         choices=Requests.STATEMENT_TYPE,
@@ -46,7 +48,7 @@ class RequestForm(forms.Form):
     placeholders = {
         "report_name": "Enter report title (e.g., Tech Peers Revenue Analysis)",
         "information": "Enter brief details or reason for this request",
-        "ticker": "Enter stock ticker symbols separated by commas",
+        "tickers": "Select one or more ticker symbols",
         "start_year": "e.g., 2020",
         "end_year": "e.g., 2025",
     }
@@ -56,10 +58,33 @@ class RequestForm(forms.Form):
 
         for field_name in self.fields:
             if field_name in ["period_type", "display_unit"]:
-                self.fields[field_name].widget.attrs.update({"class": "form-check"})
+                self.fields[field_name].widget.attrs.update({"class": "form-check-input"})
+            elif field_name == "tickers":
+                self.fields[field_name].widget.attrs.update({"class": "form-control select2"})
             else:
                 self.fields[field_name].widget.attrs.update({"class": "form-control"})
 
         for field_name, placeholder in self.placeholders.items():
             if field_name in self.fields:
                 self.fields[field_name].widget.attrs.update({"placeholder": placeholder})
+
+    def clean_tickers(self):
+        """Validate that at least one ticker is selected"""
+        tickers = self.cleaned_data.get('tickers')
+        if not tickers or len(tickers) == 0:
+            raise forms.ValidationError("Please select at least one ticker symbol.")
+        return tickers
+
+    def clean(self):
+        """Validate year range"""
+        cleaned_data = super().clean()
+        start_year = cleaned_data.get('start_year')
+        end_year = cleaned_data.get('end_year')
+        
+        if start_year and end_year:
+            if start_year > end_year:
+                raise forms.ValidationError("Start year cannot be greater than end year.")
+            if end_year - start_year > 20:
+                raise forms.ValidationError("Year range cannot exceed 20 years.")
+        
+        return cleaned_data
