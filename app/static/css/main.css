@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css");
+@import url("https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css");
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
@@ -6,14 +8,14 @@
 }
 
 .custom-card-header {
-    background-color: #ffc82a;
+    background-color: #00bf63;
     color: white;
     border-top-left-radius: 0.95rem !important; 
     border-top-right-radius: 0.95rem !important;
 }
 
 .custom-card-body {
-    background-color: #727272;
+    background-color: #0b0050;
     border-bottom-left-radius: 0.95rem !important; 
     border-bottom-right-radius: 0.95rem !important;
 }
@@ -29,11 +31,11 @@
 }
 
 .custom-bg {
-    background-color: #ffc82a;
+    background-color: #0b0050;
 }
 
 .custom-navbar {
-    background-color: #ffc82a;
+    background-color: #0b0050;
     color: white;
     z-index: 1100;
 }
@@ -50,6 +52,15 @@
 
 .submit-btn {
     width: 70%;
+    background-color: #00bf63;
+}
+
+.btn-secondary {
+    background-color: #00bf63;
+}
+
+.btn-secondary:hover {
+    background-color: #00bf63;
 }
 
 .table-custom {
@@ -108,6 +119,10 @@ input.error {
     flex-shrink: 0;
 }
 
+.form-text {
+    color: white;
+}
+
 select.form-control {
     appearance: none;
     -webkit-appearance: none;
@@ -118,3 +133,15 @@ select.form-control {
     background-size: 16px 12px;
     padding-right: 2.5rem;
 }
+
+.select2-container .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #dee2e6;
+}
+.form-check-input {
+    margin-right: 0.5rem;
+}
+.form-check {
+    padding-left: 0;
+}
+

@@ -9,7 +9,7 @@ class RequestForm(forms.Form):
         },
     )
     information = forms.CharField(
-        label="Brief Information / Justification",
+        label="Brief Information",
         widget=forms.Textarea(attrs={"rows": 3, "cols": 40}),
     )
     tickers = forms.MultipleChoiceField(
@@ -46,11 +46,9 @@ class RequestForm(forms.Form):
     )
 
     placeholders = {
-        "report_name": "Enter report title (e.g., Tech Peers Revenue Analysis)",
-        "information": "Enter brief details or reason for this request",
+        "report_name": "Enter report title (e.g., Balance Sheet Analysis for AAPL 2025)",
+        "information": "Enter brief information for this request",
         "tickers": "Select one or more ticker symbols",
-        "start_year": "e.g., 2020",
-        "end_year": "e.g., 2025",
     }
 
     def __init__(self, *args, **kwargs):

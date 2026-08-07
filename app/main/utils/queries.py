@@ -1,73 +1,82 @@
+# 0 - start_year 
+# 1 - end_year
+# 2 - selected_tickers
+# 3 - statement_type
+# 4 - period_type
+# 5 - display_unit_divider
+
 QUERY = """
-    SELECT * FROM `google_bigquery_dataset.table1`
-"""
 
 
-"""
-WITH sp500_ciks AS (
-  -- Information Technology & Tech Giants
-  SELECT 320193 AS cik, 'AAPL' AS ticker UNION ALL   -- Apple
-  SELECT 789019 AS cik, 'MSFT' AS ticker UNION ALL   -- Microsoft
-  SELECT 1652044 AS cik, 'GOOGL' AS ticker UNION ALL -- Alphabet (Class A)
-  SELECT 1652044 AS cik, 'GOOG' AS ticker UNION ALL  -- Alphabet (Class C)
-  SELECT 1018724 AS cik, 'AMZN' AS ticker UNION ALL  -- Amazon
-  SELECT 1326801 AS cik, 'META' AS ticker UNION ALL  -- Meta Platforms
-  SELECT 1045810 AS cik, 'NVDA' AS ticker UNION ALL  -- NVIDIA
-  SELECT 1318605 AS cik, 'TSLA' AS ticker UNION ALL  -- Tesla
-  SELECT 1118037 AS cik, 'AVGO' AS ticker UNION ALL  -- Broadcom
-  SELECT 886035 AS cik, 'CSCO' AS ticker UNION ALL   -- Cisco Systems
-  SELECT 1021808 AS cik, 'ACN' AS ticker UNION ALL    -- Accenture
-  SELECT 796343 AS cik, 'ADBE' AS ticker UNION ALL   -- Adobe
-  SELECT 2488 AS cik, 'AMD' AS ticker UNION ALL      -- AMD
-  SELECT 50863 AS cik, 'INTC' AS ticker UNION ALL    -- Intel
-  SELECT 1341439 AS cik, 'ORCL' AS ticker UNION ALL  -- Oracle
-  SELECT 874761 AS cik, 'CRM' AS ticker UNION ALL   -- Salesforce
-  SELECT 225282 AS cik, 'QCOM' AS ticker UNION ALL   -- Qualcomm
-  SELECT 4127 AS cik, 'IBM' AS ticker UNION ALL      -- IBM
-
-  -- Financials & Banking
-  SELECT 1067983 AS cik, 'BRK.B' AS ticker UNION ALL -- Berkshire Hathaway
-  SELECT 19617 AS cik, 'JPM' AS ticker UNION ALL     -- JPMorgan Chase
-  SELECT 70858 AS cik, 'BAC' AS ticker UNION ALL     -- Bank of America
-  SELECT 829224 AS cik, 'V' AS ticker UNION ALL      -- Visa
-  SELECT 1141391 AS cik, 'MA' AS ticker UNION ALL    -- Mastercard
-  SELECT 831001 AS cik, 'C' AS ticker UNION ALL      -- Citigroup
-  SELECT 723254 AS cik, 'WFC' AS ticker UNION ALL    -- Wells Fargo
-  SELECT 886982 AS cik, 'GS' AS ticker UNION ALL     -- Goldman Sachs
-  SELECT 895421 AS cik, 'MS' AS ticker UNION ALL     -- Morgan Stanley
-  SELECT 818479 AS cik, 'SCHW' AS ticker UNION ALL   -- Charles Schwab
-
-  -- Healthcare & Pharmaceuticals
-  SELECT 200406 AS cik, 'JNJ' AS ticker UNION ALL    -- Johnson & Johnson
-  SELECT 310158 AS cik, 'MRK' AS ticker UNION ALL    -- Merck
-  SELECT 78003 AS cik, 'PFE' AS ticker UNION ALL     -- Pfizer
-  SELECT 59478 AS cik, 'LLY' AS ticker UNION ALL     -- Eli Lilly
-  SELECT 1551152 AS cik, 'ABBV' AS ticker UNION ALL  -- AbbVie
-  SELECT 1800 AS cik, 'ABT' AS ticker UNION ALL      -- Abbott Laboratories
-  SELECT 731766 AS cik, 'UNH' AS ticker UNION ALL    -- UnitedHealth Group
-  SELECT 318154 AS cik, 'AMGN' AS ticker UNION ALL    -- Amgen
-  SELECT 1047127 AS cik, 'CVS' AS ticker UNION ALL   -- CVS Health
-
-  -- Consumer Discretionary & Retail
-  SELECT 104169 AS cik, 'WMT' AS ticker UNION ALL    -- Walmart
-  SELECT 909832 AS cik, 'COST' AS ticker UNION ALL   -- Costco
-  SELECT 27419 AS cik, 'TGT' AS ticker UNION ALL     -- Target
-  SELECT 354950 AS cik, 'HD' AS ticker UNION ALL     -- Home Depot
-  SELECT 60667 AS cik, 'LOW' AS ticker UNION ALL     -- Lowe's
-  SELECT 63908 AS cik, 'MCD' AS ticker UNION ALL     -- McDonald's
-  SELECT 320187 AS cik, 'NKE' AS ticker UNION ALL    -- Nike
-  SELECT 1065280 AS cik, 'NFLX' AS ticker UNION ALL  -- Netflix
-  SELECT 21344 AS cik, 'KO' AS ticker UNION ALL      -- Coca-Cola
-  SELECT 77476 AS cik, 'PEP' AS ticker UNION ALL     -- PepsiCo
-  SELECT 80424 AS cik, 'PG' AS ticker UNION ALL      -- Procter & Gamble
-
-  -- Energy & Industrials
-  SELECT 34088 AS cik, 'XOM' AS ticker UNION ALL     -- ExxonMobil
-  SELECT 93410 AS cik, 'CVX' AS ticker UNION ALL     -- Chevron
-  SELECT 18230 AS cik, 'CAT' AS ticker UNION ALL     -- Caterpillar
-  SELECT 12927 AS cik, 'BA' AS ticker UNION ALL      -- Boeing
-  SELECT 40545 AS cik, 'GE' AS ticker UNION ALL      -- General Electric
-  SELECT 101872 AS cik, 'UNP' AS ticker UNION ALL    -- Union Pacific
-  SELECT 66740 AS cik, 'MMM' AS ticker               -- 3M
+WITH user_inputs AS (
+  SELECT
+    {{ARRAY{2} AS selected_tickers}},
+    {3} AS statement_type,
+    {4} AS period_type,
+    {0} AS start_year,
+    {1} AS end_year,
+    {5} AS display_unit_divider
 )
+
+SELECT
+  sub.ticker,
+  sub.company_name AS company_name,
+  sub.fy AS fiscal_year,
+  sub.fp AS fiscal_period,
+  sub.form AS form_type,
+  num.tag AS line_item_tag,
+  num.ddate AS period_end_date,
+  num.units AS unit_of_measure,
+  -- Raw value adjusted by user selected display unit ($1, $1K, $1M)
+  ROUND(num.value / inputs.display_unit_divider, 2) AS reported_value,
+  CASE inputs.display_unit_divider
+    WHEN 1 THEN 'Exact Dollars ($)'
+    WHEN 1000 THEN 'Thousands ($K)'
+    WHEN 1000000 THEN 'Millions ($M)'
+  END AS display_unit_label
+FROM
+  `bigquery-public-data.sec_quarterly_financials.submission` AS sub
+JOIN
+  `bigquery-public-data.sec_quarterly_financials.numbers` AS num
+  ON sub.adsh = num.adsh
+CROSS JOIN
+  user_inputs AS inputs
+WHERE
+  -- Filter by requested Tickers
+  sub.ticker IN UNNEST(inputs.selected_tickers)
+
+  -- Filter by Fiscal Year Range
+  AND sub.fy BETWEEN inputs.start_year AND inputs.end_year
+
+  -- Filter Period Type (FY = 10-K Annual Reports, Q = 10-Q Quarterly Reports)
+  AND (
+    (inputs.period_type = 'FY' AND sub.form = '10-K')
+    OR (inputs.period_type = 'Q' AND sub.form = '10-Q')
+  )
+
+  -- Map Statement Type to SEC standard tags/forms
+  AND (
+    CASE inputs.statement_type
+      WHEN 'IS' THEN num.tag IN (
+        'Revenues', 'SalesRevenueNet', 'CostOfGoodsAndServicesSold', 
+        'GrossProfit', 'OperatingExpenses', 'OperatingIncomeLoss', 
+        'NetIncomeLoss', 'EarningsPerShareBasic', 'EarningsPerShareDiluted'
+      )
+      WHEN 'BS' THEN num.tag IN (
+        'Assets', 'AssetsCurrent', 'Liabilities', 'LiabilitiesCurrent', 
+        'StockholdersEquity', 'RetainedEarnings', 'CashAndCashEquivalentsAtCarryingValue'
+      )
+      WHEN 'CF' THEN num.tag IN (
+        'NetCashProvidedByUsedInOperatingActivities', 
+        'NetCashProvidedByUsedInInvestingActivities', 
+        'NetCashProvidedByUsedInFinancingActivities'
+      )
+      ELSE TRUE
+    END
+  )
+ORDER BY
+  sub.ticker,
+  sub.fy DESC,
+  sub.fp,
+  num.tag;
 """
