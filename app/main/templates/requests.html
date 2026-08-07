@@ -83,7 +83,7 @@
                                     </svg>
                                 </a>
                             </span>
-                            {% if ticket.status == 'running' or ticket.status == 'retrying' %}
+                            {% if request.status == 'running' or request.status == 'retrying' %}
                             <span data-bs-toggle="modal" data-bs-target="#confirmModal"
                                 data-cancel-url="{% url 'main:cancel_request' request.task_id %}"
                                 style="margin-right: 5px;">

@@ -26,17 +26,26 @@ def form_page(request):
         # Check if form is valid
         if form.is_valid():
             try:
+                # Calls the function to process the form data
+                # and sends all form data including requester email
+                form_data = form.cleaned_data.copy()
+                form_data['requester_email'] = request.user.email
+                task = process_form_data.delay(**form_data)
+
                 # Create a new Request object
                 with transaction.atomic():
-                    request_obj = form.save(commit=False)
-
-                    # Calls the function to process the form data
-                    # and sends all form data
-                    task = process_form_data.delay(**form.cleaned_data)
-
-                    request_obj.task_id = task.id
-                    request_obj.requester_email = request.user.email
-                    request_obj.save()
+                    request_obj = Requests.objects.create(
+                        task_id=task.id,
+                        requester_email=request.user.email,
+                        report_name=form.cleaned_data['report_name'],
+                        information=form.cleaned_data['information'],
+                        tickers=form.cleaned_data['tickers'],
+                        statement_type=form.cleaned_data['statement_type'],
+                        period_type=form.cleaned_data['period_type'],
+                        start_year=form.cleaned_data['start_year'],
+                        end_year=form.cleaned_data['end_year'],
+                        display_unit=form.cleaned_data['display_unit'],
+                    )
 
                 # Send success message
                 messages.success(
@@ -46,7 +55,7 @@ def form_page(request):
                 logger.info(f"Form submitted successfully by {request.user.email}")
 
                 # Redirect to form page
-                return redirect("form_page")
+                return redirect("main:form_page")
             except Exception as error:
                 messages.error(request, error)
                 logger.error(format_exc())
@@ -73,7 +82,7 @@ def requests_page(request):
         # Names of the fields of the model to render to the table
         fields_to_render = [
             "status",
-            "request_name",
+            "report_name",
             "information",
             "date",
             "requester_email",
@@ -82,7 +91,7 @@ def requests_page(request):
         # [EDIT HERE]
         # Custom name of the columns to render to the table.
         column_names = {
-            "request_name": "Request Name",
+            "report_name": "Report Name",
             "information": "Information",
             "requester_email": "Requester Email",
         }
