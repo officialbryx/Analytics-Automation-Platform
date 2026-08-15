@@ -44,6 +44,10 @@
     color: white;
 }
 
+.nav-link:hover {
+    color: #00bf63;
+}
+
 .btn-custom {
     width: 60%;
     pointer-events: none;

@@ -27,9 +27,7 @@ def form_page(request):
         if form.is_valid():
             try:
                 # Calls the function to process the form data
-                # and sends all form data including requester email
                 form_data = form.cleaned_data.copy()
-                form_data['requester_email'] = request.user.email
                 task = process_form_data.delay(**form_data)
 
                 # Create a new Request object
@@ -86,6 +84,7 @@ def requests_page(request):
             "information",
             "date",
             "requester_email",
+            "sheet_url",
         ]
 
         # [EDIT HERE]
@@ -94,6 +93,7 @@ def requests_page(request):
             "report_name": "Report Name",
             "information": "Information",
             "requester_email": "Requester Email",
+            "sheet_url": "Link Output",
         }
 
         # Check if user is a superuser

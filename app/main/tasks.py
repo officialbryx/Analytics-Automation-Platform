@@ -18,21 +18,53 @@ HARD_TIME_LIMIT = SOFT_TIME_LIMIT + 1800  # Add 30 minutes to the soft time limi
     soft_time_limit=SOFT_TIME_LIMIT,
     time_limit=HARD_TIME_LIMIT,
 )
-def process_form_data(self, **kwargs):
-    try:
-        # Run the process function and obtain the results
-        results = process(**kwargs)
+def process_form_data(
+    self,
+    report_name,
+    tickers,
+    statement_type,
+    period_type,
+    start_year,
+    end_year,
+    display_unit,
+    **kwargs
+):
+    task_id = self.request.id
 
-        # Set state to finished and logs to success if process succeeds
+    try:
+        with transaction.atomic():
+            current_request = Requests.objects.get(task_id=task_id)
+            current_request.logs = (
+                "Task received by Celery Worker and started processing"
+            )
+            current_request.save()
+
+        results = process(
+            task_id,
+            report_name,
+            tickers,
+            statement_type,
+            period_type,
+            start_year,
+            end_year,
+            display_unit
+        )
+        
+        # Extract the sheet URL returned by process.py
+        sheet_url = results.get("sheet_url")
+        
+        # Set state to finished and log success
+        # Removed 'rows_count' as process.py does not return it in the links dictionary
         _update_ticket_status(
-            process_form_data.request.id,
+            task_id,
             "finished",
-            f"Task Success [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}]",
+            f"Task Success [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}]\nReport generated successfully.",
+            sheet_url=sheet_url,
         )
     except SoftTimeLimitExceeded:
-        # Set state to failure and logs timeout
+        # Set state to failure and log timeout
         _update_ticket_status(
-            process_form_data.request.id,
+            task_id,
             "failure",
             f"Task Timeout [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}] \n\n{traceback.format_exc()}",
         )
@@ -40,19 +72,22 @@ def process_form_data(self, **kwargs):
         # Set state to retrying if current retry count is less than max retries
         if self.request.retries < self.max_retries:
             _update_ticket_status(
-                process_form_data.request.id, "retrying", traceback.format_exc()
+                task_id, "retrying", traceback.format_exc()
             )
-        # Else, set state to failed and logs to exception
+        # Else, set state to failed and log the exception
         else:
             _update_ticket_status(
-                process_form_data.request.id, "failure", traceback.format_exc()
+                task_id, "failure", traceback.format_exc()
             )
+        # Re-raise the exception to trigger Celery's retry mechanism
         raise self.retry(exc=exc)
 
 
-def _update_ticket_status(task_id: str, status: str, logs: str) -> None:
+def _update_ticket_status(task_id: str, status: str, logs: str, sheet_url: str = None) -> None:
     with transaction.atomic():
         current_request = Requests.objects.get(task_id=task_id)
         current_request.status = status
         current_request.logs = logs
+        if sheet_url:
+            current_request.sheet_url = sheet_url
         current_request.save()
