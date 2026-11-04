@@ -1,6 +1,8 @@
 # AAP: Analytics Automation Platform
 
 > A data extraction tool built with Django, Celery, PostgreSQL, and Redis.
+> Pick companies, a financial statement and a fiscal-year range. AAP pulls the figures from the
+> SEC public dataset in BigQuery, stores them in the database as JSON, and lets you download them as an `.xlsx` file.
 
 ---
 
@@ -49,7 +51,6 @@ REDIS_PORT=6379
 GOOGLE_OAUTH2_KEY=your_client_id_here
 GOOGLE_OAUTH2_SECRET=your_client_key_here
 GOOGLE_APPLICATION_CREDENTIALS=your_application_credentials_json_here
-GOOGLE_DRIVE_PARENT_FOLDER_ID=your_gdrive_folder_here
 ```
 
 3. Spin up services PostgreSQL & Redis services using Docker Compose:
@@ -80,8 +81,20 @@ python app/manage.py runserver
 
 **Run the celery worker**
 ```
-python -m celery -a aap worker -l info
+python -m celery -A aap worker -l info
 ```
+
+## How a report works
+
+1. Fill in the form: report name, companies, financial statement (Income Statement, Balance Sheet or Cash Flow), annual or quarterly, and the fiscal-year range.
+2. A Celery worker queries BigQuery (`bigquery-public-data.sec_quarterly_financials`) and saves the result as JSON in the request's `result_data` column.
+3. When the request is `FINISHED`, click the link on the Requests page to download the `.xlsx`. The file is built on demand from the stored JSON.
+
+Notes:
+- Output has one row per company per period, with all amounts in exact dollars (EPS is in dollars per share).
+- The SEC dataset only covers fiscal years 2009 to 2021.
+- Quarterly reports cover Q1 to Q3 (Q4 is part of the annual 10-K). Quarterly cash flow is year-to-date, as companies report it.
+- The service account needs BigQuery access only. No Google Drive or Sheets access is used.
 
 ## Documentation
 

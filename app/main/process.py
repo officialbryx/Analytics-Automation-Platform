@@ -1,21 +1,15 @@
 import logging
-from datetime import datetime
-from main.apps import MainConfig
+from io import BytesIO
+import pandas as pd
+from django.urls import reverse
 from main.models import Requests
-from main.utils.drive import (
-    create_sheet,
-    get_sheet_url,
-    move_file_to_folder,
-    create_folder,
-    update_values,
-)
-from main.utils.queries import QUERY
+from google.cloud import bigquery
+from main.utils.queries import LINE_ITEMS, PER_SHARE_ITEMS, QUERY
+from main.utils.tickers import TICKER_TO_CIK
 
 from main.initialization.google import get_bigquery_client
 
 logger = logging.getLogger(__name__)
-
-google_drive_parent_folder_id = MainConfig.google_drive_parent_folder_id
 
 
 _bq_client = None
@@ -26,33 +20,84 @@ def get_bq_client():
         _bq_client = get_bigquery_client()
     return _bq_client
 
-drive_credentials = MainConfig.google_creds 
+
+def build_report_bytes(report_name, results):
+    df = pd.DataFrame(results) if results else pd.DataFrame({"Message": ["No data found for the selected filters"]})
+    sheet_name = (str(report_name)[:31] or "Report").translate({ord(c): "_" for c in "[]:*?/\\"})
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        sheet = writer.sheets[sheet_name]
+        sheet.freeze_panes = "A2"
+        for column in sheet.columns:
+            width = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column)
+            sheet.column_dimensions[column[0].column_letter].width = min(max(width + 2, 10), 40)
+    buffer.seek(0)
+    return buffer
 
 
-def query_bigquery(tickers, statement_type, period_type, start_year, end_year, display_unit):
-    tickers_str = "['" + "','".join(tickers) + "']"
-    formatted_query = QUERY.format(
-        start_year,
-        end_year,
-        tickers_str,
-        f"'{statement_type}'",
-        f"'{period_type}'",
-        display_unit
-    )
-    
-    # Use the actual bq_client here
-    bq_client = get_bq_client()
-    query_job = bq_client.query(formatted_query)
-    results = query_job.result()
-    
-    # Convert results to list of dictionaries
-    processed_data = []
-    for row in results:
-        row_dict = dict(row.items())
-        processed_data.append(row_dict)
-    
-    logger.info(f"Retrieved {len(processed_data)} rows from BigQuery")
-    return processed_data
+def _format_period_end(yyyymmdd):
+    text = str(int(yyyymmdd))
+    return f"{text[:4]}-{text[4:6]}-{text[6:]}"
+
+
+def query_bigquery(tickers, statement_type, period_type, start_year, end_year):
+    """Return one row per company per fiscal period, one column per line item."""
+    ticker_by_cik = {TICKER_TO_CIK[t]: t for t in tickers if t in TICKER_TO_CIK}
+    line_items = LINE_ITEMS[statement_type]
+
+    if statement_type == "BS":
+        num_quarters = [0]
+    elif period_type == "FY":
+        num_quarters = [4]
+    elif statement_type == "IS":
+        num_quarters = [1]
+    else:
+        num_quarters = [1, 2, 3]  # cash flow is reported year-to-date in 10-Qs
+
+    config = bigquery.QueryJobConfig(query_parameters=[
+        bigquery.ArrayQueryParameter("ciks", "INT64", list(ticker_by_cik)),
+        bigquery.ArrayQueryParameter("tags", "STRING", [tag for _, tags in line_items for tag in tags]),
+        bigquery.ArrayQueryParameter(
+            "forms", "STRING", ["10-K", "10-K/A"] if period_type == "FY" else ["10-Q", "10-Q/A"]
+        ),
+        bigquery.ScalarQueryParameter("start_year", "INT64", int(start_year)),
+        bigquery.ScalarQueryParameter("end_year", "INT64", int(end_year)),
+        bigquery.ArrayQueryParameter("num_quarters", "INT64", num_quarters),
+    ])
+    rows = get_bq_client().query(QUERY, job_config=config).result()
+
+    # One entry per company period; the latest filing wins
+    periods = {}
+    for row in rows:
+        if period_type == "Q" and statement_type == "CF" and row["num_quarters"] != int(row["fiscal_period"][1:]):
+            continue
+        key = (row["cik"], row["fiscal_year"], row["fiscal_period"])
+        entry = periods.setdefault(key, {"filed": row["date_filed"], "row": row, "facts": {}})
+        if row["date_filed"] > entry["filed"]:
+            entry.update(filed=row["date_filed"], row=row, facts={})
+        if row["date_filed"] == entry["filed"]:
+            entry["facts"][row["tag"]] = row["value"]
+
+    results = []
+    for (cik, fiscal_year, fiscal_period), entry in sorted(
+        periods.items(), key=lambda item: (ticker_by_cik[item[0][0]], -item[0][1], item[0][2])
+    ):
+        record = {
+            "Ticker": ticker_by_cik[cik],
+            "Company": entry["row"]["company_name"],
+            "Fiscal Year": fiscal_year,
+            "Period": fiscal_period,
+            "Period End Date": _format_period_end(entry["row"]["period_end"]),
+        }
+        for label, tags in line_items:
+            value = next((entry["facts"][t] for t in tags if t in entry["facts"]), None)
+            header = f"{label} ($/share)" if label in PER_SHARE_ITEMS else f"{label} ($)"
+            record[header] = None if value is None else round(float(value), 2)
+        results.append(record)
+
+    logger.info(f"Built {len(results)} report rows from BigQuery")
+    return results
 
 
 def process(
@@ -62,81 +107,23 @@ def process(
     statement_type,
     period_type,
     start_year,
-    end_year,
-    display_unit
+    end_year
 ):
     current_request = Requests.objects.get(task_id=task_id)
 
     logger.info(f"Loading data report for {report_name}")
     current_request.save()
 
-    # Query BigQuery
     results = query_bigquery(
         tickers=tickers,
         statement_type=statement_type,
         period_type=period_type,
         start_year=start_year,
-        end_year=end_year,
-        display_unit=display_unit
+        end_year=end_year
     )
     logger.info(f"Successfully loaded {len(results)} rows.")
 
-    # Create a timestamp folder name
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    folder_name = f"{report_name}_{timestamp}"
-    
-    # Create folder in Google Drive
-    logger.info(f"Creating folder: {folder_name}")
-    parent_folder_id = google_drive_parent_folder_id
-    
-    # Pass drive_credentials (or built service object) depending on what your utils expect
-    folder_id = create_folder(drive_credentials, folder_name, parent_folder_id)
-    
-    # Create Google Sheet
-    sheet_title = f"{report_name}"
-    spreadsheet_id = create_sheet(drive_credentials, sheet_title)
-    logger.info(f"Google sheet created: {sheet_title}")
-    
-    # Format and populate the sheet
-    logger.info(f"Populating sheet with {len(results)} rows")
-    if results:
-        # Get headers from first row
-        headers = list(results[0].keys())
-        # Convert results to list of lists
-        data_rows = [[str(row[header]) if row[header] is not None else "" for header in headers] for row in results]
-        # Combine headers and data
-        all_data = [headers] + data_rows
-        
-        # Update the sheet
-        update_values(
-            creds=drive_credentials,
-            spreadsheet_id=spreadsheet_id,
-            range_name="Sheet1!A1",
-            value_input_option="USER_ENTERED",
-            values=all_data
-        )
-    else:
-        logger.warning("No results returned from BigQuery")
-        # At least add headers
-        update_values(
-            creds=drive_credentials,
-            spreadsheet_id=spreadsheet_id,
-            range_name="Sheet1!A1",
-            value_input_option="USER_ENTERED",
-            values=[["No data returned from query"]]
-        )
-    
-    # Move sheet to folder
-    move_file_to_folder(drive_credentials, spreadsheet_id, folder_id)
-    logger.info(f"Moved Google Sheet file: {folder_id}")
-    
-    # Get the sheet URL
-    sheet_url = get_sheet_url(spreadsheet_id)
-    logger.info(f"Google Sheet URL Link updated: {sheet_url}")
-    
-    links = {
-        "sheet_url": sheet_url,
-        "folder_id": folder_id,
-    }
+    current_request.result_data = results
+    current_request.save(update_fields=["result_data"])
 
-    return links
+    return {"sheet_url": reverse("main:download_report", args=[task_id])}

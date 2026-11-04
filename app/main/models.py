@@ -17,13 +17,7 @@ class Requests(models.Model):
 
     PERIOD_TYPE = (
         ("FY", "Annual (Full Year)"),
-        ("Q", "Quarterly"),
-    )
-
-    DISPLAY_UNIT = (
-        ("1", "Exact Dollars ($)"),
-        ("1000", "Thousands ($K)"),
-        ("1000000", "Millions ($M)"),
+        ("Q", "Quarterly (Q1-Q3)"),
     )
 
     TICKER_CHOICES = (
@@ -524,16 +518,16 @@ class Requests(models.Model):
 
     # User Request Inputs
     report_name = models.CharField(max_length=200)
-    information = models.TextField()
+    information = models.TextField(blank=True, default="")
     tickers = models.JSONField(default=list)
     statement_type = models.CharField(max_length=2, choices=STATEMENT_TYPE, default="IS")
     period_type = models.CharField(max_length=2, choices=PERIOD_TYPE, default="FY")
     start_year = models.IntegerField()
     end_year = models.IntegerField()
-    display_unit = models.CharField(max_length=10, choices=DISPLAY_UNIT, default="1000000")
     
     # Output
     sheet_url = models.URLField(null=True, blank=True)
+    result_data = models.JSONField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Request"

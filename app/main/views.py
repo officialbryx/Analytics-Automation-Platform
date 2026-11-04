@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 import logging
@@ -42,7 +42,6 @@ def form_page(request):
                         period_type=form.cleaned_data['period_type'],
                         start_year=form.cleaned_data['start_year'],
                         end_year=form.cleaned_data['end_year'],
-                        display_unit=form.cleaned_data['display_unit'],
                     )
 
                 # Send success message
@@ -195,3 +194,19 @@ def delete_request(request, task_id):
         logger.error(format_exc())
 
     return HttpResponseRedirect(request.META.get("HTTP_REFERER", reverse("main:requests_page")))
+
+
+@login_required(login_url="/")
+def download_report(request, task_id):
+    from main.process import build_report_bytes
+    try:
+        request_obj = Requests.objects.get(task_id=task_id)
+    except Requests.DoesNotExist:
+        raise Http404("Request not found")
+    if request_obj.requester_email != request.user.email and not request.user.is_superuser:
+        raise Http404("Report not found")
+    if request_obj.result_data is None:
+        raise Http404("Report data not found")
+    filename = f"{_format_string(request_obj.report_name).replace(' ', '_')}.xlsx"
+    buffer = build_report_bytes(request_obj.report_name, request_obj.result_data)
+    return FileResponse(buffer, as_attachment=True, filename=filename)
