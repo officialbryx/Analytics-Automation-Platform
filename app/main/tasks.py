@@ -26,7 +26,6 @@ def process_form_data(
     period_type,
     start_year,
     end_year,
-    display_unit,
     **kwargs
 ):
     task_id = self.request.id
@@ -47,14 +46,10 @@ def process_form_data(
             period_type,
             start_year,
             end_year,
-            display_unit
         )
         
-        # Extract the sheet URL returned by process.py
         sheet_url = results.get("sheet_url")
         
-        # Set state to finished and log success
-        # Removed 'rows_count' as process.py does not return it in the links dictionary
         _update_ticket_status(
             task_id,
             "finished",
@@ -62,24 +57,24 @@ def process_form_data(
             sheet_url=sheet_url,
         )
     except SoftTimeLimitExceeded:
-        # Set state to failure and log timeout
+        # Timed out
         _update_ticket_status(
             task_id,
             "failure",
             f"Task Timeout [{timezone.now().strftime('%Y-%m-%d %H:%M:%S')}] \n\n{traceback.format_exc()}",
         )
     except Exception as exc:
-        # Set state to retrying if current retry count is less than max retries
+        # Retry until max retries
         if self.request.retries < self.max_retries:
             _update_ticket_status(
                 task_id, "retrying", traceback.format_exc()
             )
-        # Else, set state to failed and log the exception
+        # Out of retries
         else:
             _update_ticket_status(
                 task_id, "failure", traceback.format_exc()
             )
-        # Re-raise the exception to trigger Celery's retry mechanism
+        # Trigger the Celery retry
         raise self.retry(exc=exc)
 
 

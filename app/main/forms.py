@@ -4,58 +4,60 @@ from .models import Requests
 class RequestForm(forms.Form):
     report_name = forms.CharField(
         label="Report Name",
+        help_text="Any title you like. It becomes the Excel file name.",
         error_messages={
             "required": 'Please insert a proper "Report Name".',
         },
     )
     information = forms.CharField(
-        label="Brief Information",
-        widget=forms.Textarea(attrs={"rows": 3, "cols": 40}),
+        label="Notes (optional)",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 2}),
     )
     tickers = forms.MultipleChoiceField(
         choices=Requests.TICKER_CHOICES,
         widget=forms.SelectMultiple(attrs={
             'class': 'form-control select2',
         }),
-        help_text="Hold Ctrl (Cmd on Mac) to select multiple tickers."
+        label="Companies",
+        help_text="Pick one or more companies."
     )
     statement_type = forms.ChoiceField(
-        label="Financial Statement Type",
+        label="Financial Statement",
         choices=Requests.STATEMENT_TYPE,
         initial="IS",
     )
     period_type = forms.ChoiceField(
-        label="Time Frequency",
+        label="Report By",
         choices=Requests.PERIOD_TYPE,
         widget=forms.RadioSelect,
         initial="FY",
     )
     start_year = forms.IntegerField(
-        label="Start Fiscal Year",
-        initial=2020,
+        label="From Fiscal Year",
+        initial=2019,
+        min_value=2009,
+        max_value=2021,
     )
     end_year = forms.IntegerField(
-        label="End Fiscal Year",
-        initial=2025,
-    )
-    display_unit = forms.ChoiceField(
-        label="Display Numbers In",
-        choices=Requests.DISPLAY_UNIT,
-        widget=forms.RadioSelect,
-        initial="1000000",
+        label="To Fiscal Year",
+        initial=2020,
+        min_value=2009,
+        max_value=2021,
+        help_text="SEC data is available for fiscal years 2009 to 2021 only."
     )
 
     placeholders = {
-        "report_name": "Enter report title (e.g., Balance Sheet Analysis for AAPL 2025)",
-        "information": "Enter brief information for this request",
-        "tickers": "Select one or more ticker symbols",
+        "report_name": "e.g. Apple Income Statement 2019-2020",
+        "information": "Anything you want to remember about this report",
+        "tickers": "Select one or more companies",
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         for field_name in self.fields:
-            if field_name in ["period_type", "display_unit"]:
+            if field_name in ["period_type"]:
                 self.fields[field_name].widget.attrs.update({"class": "form-check-input"})
             elif field_name == "tickers":
                 self.fields[field_name].widget.attrs.update({"class": "form-control select2"})
